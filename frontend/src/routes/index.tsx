@@ -3,13 +3,14 @@ import { useWalletSelector } from "@near-wallet-selector/react-hook";
 import { useState, useEffect, useCallback } from 'react';
 import { useBridge } from '../hooks/useBridge';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useAccount } from 'wagmi';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import toast from 'react-hot-toast';
 import { ChevronDown, ChevronUp, Info, Wallet, RefreshCw } from 'lucide-react';
 import { getAllTokens, getSolBalance, TokenInfo as SolanaTokenInfo } from '../lib/sol';
 import { formatNumber } from '../utils/sol';
 import { isRegisteredToken } from '../lib/omni-bridge';
 import { getNearBalance } from '../lib/near';
+import { useWalletContext } from '../contexts/WalletProviderContext';
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -40,6 +41,49 @@ function Home() {
   const [checkResult, setCheckResult] = useState<string>('');
   const {signIn, signedAccountId} = useWalletSelector()
   const { address: evmAddress, isConnected: evmConnected } = useAccount();
+  
+  // Wallet connection hooks
+  const { connect, connectors } = useConnect();
+  const { connectSolana } = useWalletContext();
+  
+  // Connection state
+  const [isConnectingNEAR, setIsConnectingNEAR] = useState(false);
+
+  // Wallet connection functions
+  const handleConnectSolana = async () => {
+    try {
+      await connectSolana();
+      toast.success('Solana wallet connected successfully!');
+    } catch (error) {
+      console.error('Failed to connect Solana wallet:', error);
+      toast.error('Failed to connect Solana wallet');
+    }
+  };
+
+  const handleConnectNEAR = async () => {
+    try {
+      setIsConnectingNEAR(true);
+      signIn();
+      toast.success('NEAR wallet connected successfully!');
+    } catch (error) {
+      console.error('Failed to connect NEAR wallet:', error);
+      toast.error('Failed to connect NEAR wallet');
+    } finally {
+      setIsConnectingNEAR(false);
+    }
+  };
+
+  const handleConnectMetaMask = async () => {
+    if (!evmConnected) {
+      try {
+        await connect({ connector: connectors[0] });
+        toast.success('MetaMask connected successfully!');
+      } catch (error) {
+        console.error('Failed to connect MetaMask:', error);
+        toast.error('Failed to connect MetaMask');
+      }
+    }
+  };
 
   // New state for the redesigned interface
   const [selectedToken, setSelectedToken] = useState<TokenInfo>();
@@ -386,7 +430,10 @@ function Home() {
                   )}
                 </div>
               ) : (
-                <button className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
+                <button 
+                  onClick={handleConnectSolana}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                >
                   Connect
                 </button>
               )}
@@ -420,10 +467,11 @@ function Home() {
                 </div>
               ) : (
                 <button 
-                  onClick={signIn}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                  onClick={handleConnectNEAR}
+                  disabled={isConnectingNEAR}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Connect
+                  {isConnectingNEAR ? 'Connecting...' : 'Connect'}
                 </button>
               )}
             </div>
@@ -453,7 +501,10 @@ function Home() {
                   )}
                 </div>
               ) : (
-                <button className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50">
+                <button 
+                  onClick={handleConnectMetaMask}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                >
                   Connect
                 </button>
               )}
@@ -706,14 +757,18 @@ function Home() {
               switch (toChain) {
                 case 'near':
                   if (!signedAccountId) {
-                    signIn();
+                    handleConnectNEAR();
                   }
                   break;
                 case 'solana':
-                  // Solana wallet connection is handled by the wallet adapter
+                  if (!connected) {
+                    handleConnectSolana();
+                  }
                   break;
                 case 'evm':
-                  // EVM wallet connection is handled by wagmi
+                  if (!evmConnected) {
+                    handleConnectMetaMask();
+                  }
                   break;
               }
             };
@@ -786,15 +841,21 @@ function Home() {
                 // Try to connect the missing wallets
                 if (!isFromChainWalletConnected()) {
                   if (fromChain === 'near' && !signedAccountId) {
-                    signIn();
+                    handleConnectNEAR();
+                  } else if (fromChain === 'solana' && !connected) {
+                    handleConnectSolana();
+                  } else if (fromChain === 'evm' && !evmConnected) {
+                    handleConnectMetaMask();
                   }
-                  // For Solana and EVM, connection is handled by their respective adapters
                 }
                 if (!isToChainWalletConnected()) {
                   if (toChain === 'near' && !signedAccountId) {
-                    signIn();
+                    handleConnectNEAR();
+                  } else if (toChain === 'solana' && !connected) {
+                    handleConnectSolana();
+                  } else if (toChain === 'evm' && !evmConnected) {
+                    handleConnectMetaMask();
                   }
-                  // For Solana and EVM, connection is handled by their respective adapters
                 }
               }}
             >
@@ -876,20 +937,26 @@ function Home() {
               if (!areBothWalletsConnected()) {
                 return (
                   <button 
-                    className="w-full bg-green-500 text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors"
+                    className="w-full bg-green-500 text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors cursor-pointer"
                     onClick={() => {
                       // Try to connect the missing wallets
                       if (!isFromChainWalletConnected()) {
                         if (fromChain === 'near' && !signedAccountId) {
-                          signIn();
+                          handleConnectNEAR();
+                        } else if (fromChain === 'solana' && !connected) {
+                          handleConnectSolana();
+                        } else if (fromChain === 'evm' && !evmConnected) {
+                          handleConnectMetaMask();
                         }
-                        // For Solana and EVM, connection is handled by their respective adapters
                       }
                       if (!isToChainWalletConnected()) {
                         if (toChain === 'near' && !signedAccountId) {
-                          signIn();
+                          handleConnectNEAR();
+                        } else if (toChain === 'solana' && !connected) {
+                          handleConnectSolana();
+                        } else if (toChain === 'evm' && !evmConnected) {
+                          handleConnectMetaMask();
                         }
-                        // For Solana and EVM, connection is handled by their respective adapters
                       }
                     }}
                   >
