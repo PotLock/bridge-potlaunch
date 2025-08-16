@@ -132,16 +132,16 @@ const WalletButton: React.FC = () => {
     return (
       <div className="flex flex-col gap-2">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="default" className="flex items-center space-x-2 bg-white border border-gray-200 hover:text-black cursor-pointer hover:bg-gray-50">
+          <DropdownMenuTrigger asChild className='shadow-none'>
+            <Button variant="default" className="shadow-none flex items-center space-x-2 bg-white border border-gray-200 hover:text-black cursor-pointer hover:bg-gray-50">
               <User className="w-4 h-4" />
               <span>{getButtonText()}</span>
               <ChevronDown className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64 bg-white text-black ">
+          <DropdownMenuContent align="end" className="w-64 bg-white text-black shadow-none border border-gray-200">
             {connectedWallets.map((wallet, index) => (
-              <DropdownMenuItem key={index} className="flex items-center gap-2 hover:bg-gray-50">
+              <DropdownMenuItem key={index} className="flex items-center gap-2 hover:bg-gray-50 shadow-none">
                 <div className="flex items-center space-x-2">
                   <img 
                     src={wallet.type === 'solana' ? '/chains/solana.svg' : 
@@ -157,11 +157,11 @@ const WalletButton: React.FC = () => {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className='cursor-pointer' onClick={() => setIsProfileModalOpen(true)}>
+            <DropdownMenuItem className='cursor-pointer hover:bg-gray-200' onClick={() => setIsProfileModalOpen(true)}>
               <User className="w-4 h-4" />
               Manage Wallets
             </DropdownMenuItem>
-            <DropdownMenuItem className='cursor-pointer' onClick={() => setIsSignInModalOpen(true)}>
+            <DropdownMenuItem className='cursor-pointer hover:bg-gray-200' onClick={() => setIsSignInModalOpen(true)}>
               <User className="w-4 h-4" />
               Add More Wallets
             </DropdownMenuItem>
@@ -170,7 +170,7 @@ const WalletButton: React.FC = () => {
               <DropdownMenuItem 
                 key={`disconnect-${index}`} 
                 onClick={() => handleDisconnectWallet(wallet.type)}
-                className="text-red-600 hover:text-red-700 cursor-pointer"
+                className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 Disconnect {wallet.displayName}

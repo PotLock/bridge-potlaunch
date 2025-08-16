@@ -129,10 +129,10 @@ const WalletProfileModal: React.FC<WalletProfileModalProps> = ({
                     <span className="font-medium text-sm">{wallet.displayName}</span>
                   </div>
                   <Button
-                    variant="ghost"
+                    variant="default"
                     size="sm"
                     onClick={() => handleDisconnectWallet(wallet.type)}
-                    className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                    className="h-6 p-3 border border-red-200 hover:bg-red-50 shadow-none cursor-pointer text-xs text-red-600 hover:text-red-700 bg-white rounded-md"
                   >
                     Disconnect
                   </Button>
@@ -141,15 +141,13 @@ const WalletProfileModal: React.FC<WalletProfileModalProps> = ({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Address</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => handleCopyAddress(wallet.address)}
-                      className="h-6 px-2 text-xs"
+                      className="h-6 px-3 py-1 text-xs flex flex-row gap-1 items-center cursor-pointer border border-gray-200 hover:bg-gray-50 rounded-md"
                     >
                       <Copy className="w-3 h-3 mr-1" />
                       {copied && copiedAddress === wallet.address ? 'Copied!' : 'Copy'}
-                    </Button>
+                    </button>
                   </div>
                   <p className="font-mono text-xs bg-gray-100 px-2 py-1 rounded break-all">
                     {wallet.address.length > 40 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect,useState } from 'react';
 import { useWalletContext } from '../contexts/WalletProviderContext';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { 
@@ -34,7 +34,7 @@ const SignInModal: React.FC<SignInModalProps> = ({
   const [isConnectingNEAR, setIsConnectingNEAR] = useState(false);
 
   // Update connected wallets when wallet states change
-  React.useEffect(() => {
+  useEffect(() => {
     const wallets: ConnectedWallet[] = [];
     
     if (isSolanaConnected && solanaPublicKey) {
@@ -179,24 +179,20 @@ const SignInModal: React.FC<SignInModalProps> = ({
                     <span className="text-xs text-gray-500 font-mono">
                       {getWalletAddress('solana')}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => handleDisconnectWallet('solana')}
-                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                      className="px-2 py-1 hover:bg-red-50 border hover:border-red-200 border-red-200 rounded-md cursor-pointer text-xs text-red-600 hover:text-red-700"
                     >
                       Disconnect
-                    </Button>
+                    </button>
                   </div>
                 ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={handleConnectSolana}
-                    className="h-8 px-3"
+                    className="px-3 text-sm border border-gray-200 hover:bg-gray-100 hover:border-gray-300 rounded-md py-1 cursor-pointer"
                   >
                     Connect
-                  </Button>
+                  </button>
                 )}
               </div>
 
@@ -211,32 +207,28 @@ const SignInModal: React.FC<SignInModalProps> = ({
                     <span className="text-xs text-gray-500 font-mono">
                       {getWalletAddress('near')}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => handleDisconnectWallet('near')}
-                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                      className="px-3 py-1 hover:bg-red-50 hover:border-red-200 border border-red-200 rounded-md cursor-pointer text-xs text-red-600 hover:text-red-700"
                     >
                       Disconnect
-                    </Button>
+                    </button>
                   </div>
                 ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={handleConnectNEAR}
-                    className="h-8 px-3"
                     disabled={isConnectingNEAR}
+                    className="px-3 text-sm border border-gray-200 hover:bg-gray-100 hover:border-gray-300 rounded-md py-1 cursor-pointer"
                   >
-                    {isConnectingNEAR ? 'Connecting...' : 'Connect'}
-                  </Button>
+                    {isConnectingNEAR ? "Connecting..." : "Connect"}
+                  </button>
                 )}
               </div>
 
               {/* MetaMask */}
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <img src="/icons/metamask.svg" alt="MetaMask" className="w-6 h-6" />
+                  <img src="/icons/metamask-1.svg" alt="MetaMask" className="w-6 h-6" />
                   <span className="text-sm font-medium">MetaMask</span>
                 </div>
                 {getWalletStatus('evm') ? (
@@ -244,30 +236,25 @@ const SignInModal: React.FC<SignInModalProps> = ({
                     <span className="text-xs text-gray-500 font-mono">
                       {getWalletAddress('evm')}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => handleDisconnectWallet('evm')}
-                      className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                      className="px-3 py-1 hover:bg-red-50 border hover:border-red-200 border-red-200 rounded-md cursor-pointer text-xs text-red-600 hover:text-red-700"
                     >
                       Disconnect
-                    </Button>
+                    </button>
                   </div>
                 ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={handleConnectMetaMask}
-                    className="h-8 px-3"
+                    className="px-3 text-sm border border-gray-200 hover:bg-gray-100 hover:border-gray-300 rounded-md py-1 cursor-pointer"
                   >
                     Connect
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Connected wallets summary */}
           {connectedWallets.length > 0 && (
             <div className="pt-4 border-t border-gray-200">
               <h3 className="text-sm font-medium text-gray-700 mb-2">
