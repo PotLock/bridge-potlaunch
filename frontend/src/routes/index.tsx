@@ -10,6 +10,7 @@ import { getAllTokens, getSolBalance, TokenInfo as SolanaTokenInfo } from '../li
 import { formatNumber } from '../utils/sol';
 import { isRegisteredToken } from '../lib/omni-bridge';
 import { getNearBalance } from '../lib/near';
+import { getBalanceEVM } from '../lib/evm';
 import { useWalletContext } from '../contexts/WalletProviderContext';
 
 export const Route = createFileRoute('/')({
@@ -36,9 +37,7 @@ function Home() {
   const { publicKey, connected } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
-  const [tokenMint, setTokenMint] = useState('');
   const [amount, setAmount] = useState('');
-  const [checkResult, setCheckResult] = useState<string>('');
   const {signIn, signedAccountId} = useWalletSelector()
   const { address: evmAddress, isConnected: evmConnected } = useAccount();
   
@@ -61,6 +60,12 @@ function Home() {
   const [tokenIsRegistered, setTokenIsRegistered] = useState<boolean>(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [transactionHashNear, setTransactionHashNear] = useState<string | null>(null);
+  
+  // Wallet balance states
+  const [solanaBalance, setSolanaBalance] = useState<number | null>(null);
+  const [nearBalance, setNearBalance] = useState<string | null>(null);
+  const [evmBalance, setEvmBalance] = useState<string | null>(null);
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
 
 
   // Wallet connection functions
@@ -93,6 +98,41 @@ function Home() {
         console.error('Failed to connect MetaMask:', error);
         toast.error('Failed to connect MetaMask');
       }
+    }
+  };
+
+  // Function to fetch wallet balances
+  const fetchWalletBalances = async () => {
+    setIsLoadingBalances(true);
+    try {
+      // Fetch Solana balance
+      if (connected && publicKey) {
+        const solBalance = await getSolBalance(publicKey.toBase58());
+        setSolanaBalance(solBalance);
+      } else {
+        setSolanaBalance(null);
+      }
+
+      // Fetch NEAR balance
+      if (signedAccountId) {
+        const nearBal = await getNearBalance(signedAccountId);
+        setNearBalance(nearBal);
+      } else {
+        setNearBalance(null);
+      }
+
+      // Fetch EVM balance
+      if (evmConnected && evmAddress) {
+        const evmBal = await getBalanceEVM(evmAddress);
+        setEvmBalance(evmBal);
+      } else {
+        setEvmBalance(null);
+      }
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+      toast.error('Failed to fetch wallet balances');
+    } finally {
+      setIsLoadingBalances(false);
     }
   };
 
@@ -211,6 +251,11 @@ function Home() {
     }
   }, [connected, publicKey?.toBase58()]);
 
+  // Fetch wallet balances when wallets connect
+  useEffect(() => {
+    fetchWalletBalances();
+  }, [connected, publicKey?.toBase58(), signedAccountId, evmConnected, evmAddress]);
+
   // Update selected token when chain changes or wallet connection status changes
   useEffect(() => {
     const availableTokens = getAvailableTokens();
@@ -299,6 +344,7 @@ function Home() {
     }
 
     setIsLoading(true);
+    let toastWatting; 
     try {
       
       const toastId = toast.loading("Starting token deployment process...");
@@ -317,7 +363,7 @@ function Home() {
         return;
       }
 
-      const toastWatting = toast.loading("Waiting 60 seconds for logMetadata", {id: toastId});
+      toastWatting = toast.loading("Waiting 60 seconds for logMetadata", {id: toastId});
       const result = await deployTokenNear(selectedToken.mint);
       const nearExplorerUrl = result 
         ? `https://testnet.nearblocks.io/en/txns/${result}`
@@ -327,9 +373,11 @@ function Home() {
       setTransactionHash(nearExplorerUrl)
       toast.success("Token deployed to NEAR successfully!", { id: toastWatting });
     } catch (error) {
-      setCheckResult(`❌ Error deploying token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error(error)
+      throw error
     } finally {
-      setIsLoading(false);
+      toast.dismiss(toastWatting)
+      setIsLoading(false)
     }
   };
 
@@ -355,10 +403,11 @@ function Home() {
     }
 
     setIsTransferring(true);
+    let toastWatting;
     try {
       const toastId = toast.loading("Starting token transfer process...");
 
-      const toastWatting = toast.loading("Waiting 60 seconds for logMetadata", {id: toastId});
+      toastWatting = toast.loading("Waiting 60 seconds for logMetadata", {id: toastId});
 
       // Convert amount to bigint (assuming 6 decimals for most tokens)
       const amountBigInt = BigInt(Math.floor(parseFloat(amount) * 1000000));
@@ -372,9 +421,11 @@ function Home() {
       
       toast.success("Token transfer initiated successfully!", { id: toastWatting });
     } catch (error) {
-      setCheckResult(`❌ Error transferring token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error(error)
+      throw error
     } finally {
-      setIsTransferring(false);
+      toast.dismiss(toastWatting)
+      setIsTransferring(false)
     }
   };
 
@@ -393,11 +444,13 @@ function Home() {
                 {connected || signedAccountId || evmConnected ? 'Wallets Connected' : 'No wallets connected'}
               </span>
             </div>
-            {isWalletSectionExpanded ? (
-              <ChevronUp className="w-4 h-4 text-gray-600" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-gray-600" />
-            )}
+            <div className="flex items-center space-x-2">
+              {isWalletSectionExpanded ? (
+                <ChevronUp className="w-4 h-4 text-gray-600" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-600" />
+              )}
+            </div>
           </div>
         </div>
 
@@ -407,25 +460,34 @@ function Home() {
             <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
               <div className="flex items-center space-x-3">
                 <img src="/chains/solana.svg" alt="Solana" className="w-6 h-6" />
-                <span className="text-sm font-medium">Connect Solana Wallet</span>
-              </div>
-              {connected ? (
-                <div className="relative group">
-                  <div className="text-sm text-green-600 font-mono cursor-pointer hover:text-green-700" 
-                       onClick={() => handleCopyAddress(publicKey?.toBase58() || '', 'solana')}>
-                    {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-4)}
-                  </div>
-                  {showCopySuccess === 'solana' ? (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-green-600 text-white text-xs rounded opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Copy successful!
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-600"></div>
-                    </div>
-                  ) : (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {publicKey?.toBase58()}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                <div>
+                  <span className="text-sm font-medium">Solana Wallet</span>
+                  {connected && solanaBalance !== null && (
+                    <div className="text-xs text-gray-500">
+                      Balance: <span className='font-semibold'>{isLoadingBalances ? 'Loading...' : `${solanaBalance.toFixed(4)} SOL`}</span>
                     </div>
                   )}
+                </div>
+              </div>
+              {connected ? (
+                <div className="flex items-center space-x-2">
+                  <div className="relative group">
+                    <div className="text-sm text-green-600 font-mono cursor-pointer hover:text-green-700" 
+                         onClick={() => handleCopyAddress(publicKey?.toBase58() || '', 'solana')}>
+                      {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-4)}
+                    </div>
+                    {showCopySuccess === 'solana' ? (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-green-600 text-white text-xs rounded opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        Copy successful!
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-600"></div>
+                      </div>
+                    ) : (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        {publicKey?.toBase58()}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <button 
@@ -441,27 +503,36 @@ function Home() {
             <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
               <div className="flex items-center space-x-3">
                 <img src="/chains/near.png" alt="NEAR" className="w-6 h-6" />
-                <span className="text-sm font-medium">Connect NEAR Wallet</span>
-              </div>
-              {signedAccountId ? (
-                <div className="relative group">
-                  <div className="text-sm text-green-600 font-mono cursor-pointer hover:text-green-700" 
-                       onClick={() => handleCopyAddress(signedAccountId, 'near')}>
-                    {signedAccountId.length > 20 
-                      ? `${signedAccountId.slice(0, 8)}...${signedAccountId.slice(-4)}` 
-                      : signedAccountId}
-                  </div>
-                  {showCopySuccess === 'near' ? (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-green-600 text-white text-xs rounded opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      Copy successful!
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-600"></div>
-                    </div>
-                  ) : (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {signedAccountId}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                <div>
+                  <span className="text-sm font-medium">NEAR Wallet</span>
+                  {signedAccountId && nearBalance !== null && (
+                    <div className="text-xs text-gray-500">
+                      Balance: <span className='font-semibold'>{isLoadingBalances ? 'Loading...' : `${nearBalance} NEAR`}</span>
                     </div>
                   )}
+                </div>
+              </div>
+              {signedAccountId ? (
+                <div className="flex items-center space-x-2">
+                  <div className="relative group">
+                    <div className="text-sm text-green-600 font-mono cursor-pointer hover:text-green-700" 
+                         onClick={() => handleCopyAddress(signedAccountId, 'near')}>
+                      {signedAccountId.length > 20 
+                        ? `${signedAccountId.slice(0, 8)}...${signedAccountId.slice(-4)}` 
+                        : signedAccountId}
+                    </div>
+                    {showCopySuccess === 'near' ? (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-green-600 text-white text-xs rounded opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        Copy successful!
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-600"></div>
+                      </div>
+                    ) : (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                        {signedAccountId}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <button 
@@ -477,8 +548,15 @@ function Home() {
             {/* EVM Wallet */}
             <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
               <div className="flex items-center space-x-3">
-                <img src="/chains/ethereum.png" alt="EVM" className="w-6 h-6" />
-                <span className="text-sm font-medium">Connect EVM Wallet</span>
+                <img src="/chains/ethereum.png" alt="EVM" className="w-6 h-6 object-contain" />
+                <div>
+                  <span className="text-sm font-medium">EVM Wallet</span>
+                  {evmConnected && evmBalance !== null && (
+                    <div className="text-xs text-gray-500">
+                      Balance: <span className='font-semibold'>{isLoadingBalances ? 'Loading...' : `${evmBalance} ETH`}</span>
+                    </div>
+                  )}
+                </div>
               </div>
               {evmConnected ? (
                 <div className="relative group">
@@ -520,13 +598,12 @@ function Home() {
               <button
                 onClick={fetchSolanaTokens}
                 disabled={isLoadingTokens}
-                className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                className="p-1 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                 title="Refresh tokens"
               >
-                <RefreshCw className={`w-4 h-4 text-gray-400 ${isLoadingTokens ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-gray-400 cursor-pointer ${isLoadingTokens ? 'animate-spin' : ''}`} />
               </button>
             )}
-            <Info className="w-4 h-4 text-gray-400" />
           </div>
         </div>
         
@@ -878,7 +955,7 @@ function Home() {
         if (tokenIsRegistered) {
           return (
             <button 
-              className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               onClick={handleTransferToken}
               disabled={isTransferring || !amount || parseFloat(amount) <= 0 || isAmountExceedingBalance()}
             >
@@ -888,7 +965,7 @@ function Home() {
         } else {
           return (
             <button 
-              className="w-full bg-teal-500 text-white py-3 rounded-lg font-medium hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-teal-500 text-white py-3 rounded-lg font-medium hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               onClick={handleDeployToken}
               disabled={isLoading}
             >
@@ -897,107 +974,86 @@ function Home() {
           );
         }
       })()}
-      
-      {/* Legacy Bridge Interface (Hidden by default) */}
-      <div className="mt-8 pt-8 border-t border-gray-200">
+
+      {/* Faucet Links and Information */}
+      <div className="mt-8 pt-2 border-t border-gray-200">
         <details className="group">
           <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
-            Advanced Bridge Options
+            Faucet Links & Bridge Information
           </summary>
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 space-y-6">
+            {/* Faucet Links */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Solana Token Mint Address
-              </label>
-              <input
-                type="text"
-                value={tokenMint}
-                onChange={(e) => setTokenMint(e.target.value)}
-                placeholder="e.g., So11111111111111111111111111111111111111112"
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Testnet Faucets</h4>
+              <div className="space-y-3">
+                <a 
+                  href="https://faucet.solana.com/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                >
+                  <img src="/chains/solana.svg" alt="Solana" className="w-6 h-6 object-contain" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">Solana Faucet</div>
+                    <div className="text-xs text-gray-500">Devnet/Testnet</div>
+                  </div>
+                </a>
+                <a 
+                  href="https://near-faucet.io/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                >
+                  <img src="/chains/near.png" alt="NEAR" className="w-6 h-6" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">NEAR Faucet</div>
+                    <div className="text-xs text-gray-500">Testnet</div>
+                  </div>
+                </a>
+                <a 
+                  href="https://faucets.chain.link/sepolia" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                >
+                  <img src="/chains/ethereum.png" alt="EVM" className="w-6 h-6 object-contain" />
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">Chainlink Faucets</div>
+                    <div className="text-xs text-gray-500">Ethereum Sepolia & More</div>
+                  </div>
+                </a>
+              </div>
             </div>
 
+            {/* Bridge Information */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Recipient NEAR Account
-              </label>
-              <input
-                type="text"
-                value={signedAccountId || ''}
-                placeholder="e.g., account.testnet"
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Bridge Information</h4>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h5 className="text-sm font-medium text-blue-800 mb-2">Note:</h5>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Bridge fees may apply depending on the source and destination network</li>
+                  <li>• Estimated transfer times:</li>
+                  <li className="ml-4">- NEAR to EVM/Solana: ~60 seconds</li>
+                  <li className="ml-4">- Solana to NEAR: ~60 seconds</li>
+                  <li className="ml-4">- EVM to NEAR: ~20 minutes</li>
+                </ul>
+              </div>
             </div>
 
-            {(() => {
-              // If both wallets are not connected, show Connect Wallet button
-              if (!areBothWalletsConnected()) {
-                return (
-                  <button 
-                    className="w-full bg-green-500 text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors cursor-pointer"
-                    onClick={() => {
-                      // Try to connect the missing wallets
-                      if (!isFromChainWalletConnected()) {
-                        if (fromChain === 'near' && !signedAccountId) {
-                          handleConnectNEAR();
-                        } else if (fromChain === 'solana' && !connected) {
-                          handleConnectSolana();
-                        } else if (fromChain === 'evm' && !evmConnected) {
-                          handleConnectMetaMask();
-                        }
-                      }
-                      if (!isToChainWalletConnected()) {
-                        if (toChain === 'near' && !signedAccountId) {
-                          handleConnectNEAR();
-                        } else if (toChain === 'solana' && !connected) {
-                          handleConnectSolana();
-                        } else if (toChain === 'evm' && !evmConnected) {
-                          handleConnectMetaMask();
-                        }
-                      }
-                    }}
-                  >
-                    Connect Wallet
-                  </button>
-                );
-              }
-
-              // If both wallets are connected but no token is selected
-              if (!selectedToken) {
-                return (
-                  <button 
-                    className="w-full bg-gray-400 text-white py-3 rounded-lg font-medium cursor-not-allowed"
-                    disabled
-                  >
-                    Select a Token
-                  </button>
-                );
-              }
-
-              // If both wallets are connected and token is selected
-              if (tokenIsRegistered) {
-                return (
-                  <button 
-                    className="w-full bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                    onClick={handleTransferToken}
-                    disabled={isTransferring || !amount || parseFloat(amount) <= 0 || isAmountExceedingBalance()}
-                  >
-                    {isTransferring ? 'Transferring...' : 'Transfer Token to NEAR'}
-                  </button>
-                );
-              } else {
-                return (
-                  <button 
-                    className="w-full bg-teal-500 text-white py-3 rounded-lg font-medium hover:bg-teal-600 transition-colors"
-                    onClick={handleDeployToken}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Deploying...' : 'Deploy Token to NEAR'}
-                  </button>
-                );
-              }
-            })()}
+            {/* Fee Information */}
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Fee Requirements</h4>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start space-x-3">
+                  <div>
+                    <h5 className="text-sm font-medium text-yellow-800 mb-2">Important:</h5>
+                    <p className="text-sm text-yellow-700">
+                      Solana to NEAR transfers require a minimum of <strong>4 NEAR</strong> for successful completion.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </details>
       </div>
