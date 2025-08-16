@@ -154,10 +154,10 @@ const WalletButton: React.FC = () => {
     return (
       <div className="flex flex-col gap-2">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild className='shadow-none'>
-            <Button variant="default" className="shadow-none flex items-center space-x-2 bg-white border border-gray-200 hover:text-black cursor-pointer hover:bg-gray-50">
+          <DropdownMenuTrigger asChild className='shadow-none text-black'>
+            <Button variant="default" className="shadow-none text-black flex items-center space-x-2 bg-white border border-gray-200 hover:text-black cursor-pointer hover:bg-gray-50">
               <User className="w-4 h-4" />
-              <span>{getButtonText()}</span>
+              <span className='text-black'>{getButtonText()}</span>
               <ChevronDown className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
