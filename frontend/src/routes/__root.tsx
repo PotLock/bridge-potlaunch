@@ -6,6 +6,7 @@ import WalletContextProvider from "../contexts/WalletProviderContext";
 import Header from "../components/Header";
 import { Footer } from "../components/Footer";
 import { Toaster } from "react-hot-toast";
+import { InforWarning } from "../components/InforWarning";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ function RootComponent() {
                 <WalletContextProvider> 
                     <Toaster position="top-right"/>
                     <Header/>
+                    <InforWarning/>
                     <Outlet />
                     <Footer/>
                 </WalletContextProvider>
