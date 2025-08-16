@@ -45,45 +45,9 @@ function Home() {
   // Wallet connection hooks
   const { connect, connectors } = useConnect();
   const { connectSolana } = useWalletContext();
-  
+
   // Connection state
   const [isConnectingNEAR, setIsConnectingNEAR] = useState(false);
-
-  // Wallet connection functions
-  const handleConnectSolana = async () => {
-    try {
-      await connectSolana();
-      toast.success('Solana wallet connected successfully!');
-    } catch (error) {
-      console.error('Failed to connect Solana wallet:', error);
-      toast.error('Failed to connect Solana wallet');
-    }
-  };
-
-  const handleConnectNEAR = async () => {
-    try {
-      setIsConnectingNEAR(true);
-      signIn();
-      toast.success('NEAR wallet connected successfully!');
-    } catch (error) {
-      console.error('Failed to connect NEAR wallet:', error);
-      toast.error('Failed to connect NEAR wallet');
-    } finally {
-      setIsConnectingNEAR(false);
-    }
-  };
-
-  const handleConnectMetaMask = async () => {
-    if (!evmConnected) {
-      try {
-        await connect({ connector: connectors[0] });
-        toast.success('MetaMask connected successfully!');
-      } catch (error) {
-        console.error('Failed to connect MetaMask:', error);
-        toast.error('Failed to connect MetaMask');
-      }
-    }
-  };
 
   // New state for the redesigned interface
   const [selectedToken, setSelectedToken] = useState<TokenInfo>();
@@ -97,6 +61,40 @@ function Home() {
   const [tokenIsRegistered, setTokenIsRegistered] = useState<boolean>(false);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [transactionHashNear, setTransactionHashNear] = useState<string | null>(null);
+
+
+  // Wallet connection functions
+  const handleConnectSolana = async () => {
+    try {
+      await connectSolana();
+    } catch (error) {
+      console.error('Failed to connect Solana wallet:', error);
+      toast.error('Failed to connect Solana wallet');
+    }
+  };
+
+  const handleConnectNEAR = async () => {
+    try {
+      setIsConnectingNEAR(true);
+      signIn();
+    } catch (error) {
+      console.error('Failed to connect NEAR wallet:', error);
+      toast.error('Failed to connect NEAR wallet');
+    } finally {
+      setIsConnectingNEAR(false);
+    }
+  };
+
+  const handleConnectMetaMask = async () => {
+    if (!evmConnected) {
+      try {
+        await connect({ connector: connectors[0] });
+      } catch (error) {
+        console.error('Failed to connect MetaMask:', error);
+        toast.error('Failed to connect MetaMask');
+      }
+    }
+  };
 
   // Function to fetch Solana tokens
   const fetchSolanaTokens = async () => {
@@ -432,7 +430,7 @@ function Home() {
               ) : (
                 <button 
                   onClick={handleConnectSolana}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 cursor-pointer"
                 >
                   Connect
                 </button>
@@ -469,7 +467,7 @@ function Home() {
                 <button 
                   onClick={handleConnectNEAR}
                   disabled={isConnectingNEAR}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isConnectingNEAR ? 'Connecting...' : 'Connect'}
                 </button>
@@ -503,7 +501,7 @@ function Home() {
               ) : (
                 <button 
                   onClick={handleConnectMetaMask}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50"
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 cursor-pointer"
                 >
                   Connect
                 </button>
