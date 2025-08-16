@@ -14,7 +14,7 @@ import { mainnet, sepolia, polygon, arbitrum, base } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
-
+import { ALCHEMY_API_KEY } from "../configs/env.config";
 
 export type ChainType = 'solana' | 'near' | 'evm';
 
@@ -77,8 +77,8 @@ interface IWalletContextProvider {
 const config = createConfig({
   chains: [mainnet, sepolia, polygon, arbitrum, base],
   transports: {
-    [mainnet.id]: http('https://eth-mainnet.g.alchemy.com/v2/your-api-key'),
-    [sepolia.id]: http('https://eth-sepolia.g.alchemy.com/v2/your-api-key'),
+    [mainnet.id]: http(`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`),
+    [sepolia.id]: http(`https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`),
     [polygon.id]: http('https://polygon-rpc.com'),
     [arbitrum.id]: http('https://arb1.arbitrum.io/rpc'),
     [base.id]: http('https://mainnet.base.org'),
@@ -107,7 +107,7 @@ const WalletContextProvider = ({ children }: IWalletContextProvider) => {
       id: 'evm', 
       name: 'Ethereum', 
       icon: '/chains/ethereum.png',
-      rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/your-api-key'
+      rpcUrl: `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`
     }
   ];
 

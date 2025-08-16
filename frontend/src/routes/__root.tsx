@@ -5,6 +5,7 @@ import { nearWalletConfig } from "../configs/nearWalletConfig";
 import WalletContextProvider from "../contexts/WalletProviderContext";
 import Header from "../components/Header";
 import { Footer } from "../components/Footer";
+import { Toaster } from "react-hot-toast";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ function RootComponent() {
         <QueryClientProvider client={queryClient}>
             <WalletSelectorProvider config={nearWalletConfig}>
                 <WalletContextProvider> 
+                    <Toaster position="top-right"/>
                     <Header/>
                     <Outlet />
                     <Footer/>

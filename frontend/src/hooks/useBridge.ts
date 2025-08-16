@@ -30,7 +30,7 @@ interface TokenInfo {
 }
 
 export const useBridge = () => {
-  const { publicKey, sendTransaction, connected, wallet } = useWallet();
+  const { publicKey, sendTransaction, connected } = useWallet();
   const [isBridging, setIsBridging] = useState(false);
   const anchorProvider = useAnchorProvider()
   const { walletSelector: nearWalletSelector } = useWalletSelector()
@@ -266,11 +266,14 @@ export const useBridge = () => {
       console.log('transferData', transferData)
       console.log(`Transfer status: ${status}`);
 
+      const transactionHashNear = transferData.finalised?.NearReceipt?.transaction_hash
+
       toast.success(`Bridge initiated successfully! Transaction: ${typeof result === 'string' ? result : 'Completed'}`);
       return {
         transferData,
         status,
         vaa,
+        transactionHashNear,
         transactionHash: typeof result === 'string' ? result : undefined,
       };
     } catch (error) {

@@ -80,6 +80,39 @@ async function getTokenMetadata(mint: string): Promise<TokenMetadata | null> {
 }
 
 /**
+ * Get SOL balance for a wallet address
+ * @param walletAddress - The wallet address to get SOL balance for
+ * @returns The SOL balance in SOL units
+ */
+export async function getSolBalance(walletAddress: string): Promise<number> {
+  try {
+    const connection = new Connection(getRpcEndpoint());
+    const publicKey = new PublicKey(walletAddress);
+    
+    if (!PublicKey.isOnCurve(publicKey)) {
+      throw new Error('Invalid wallet address');
+    }
+
+    const balance = await connection.getBalance(publicKey);
+    
+    // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
+    const solBalance = balance / 1_000_000_000;
+    
+    return solBalance;
+  } catch (error) {
+    console.error('Error getting SOL balance:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      walletAddress,
+      network: SOL_NETWORK,
+      rpcEndpoint: getRpcEndpoint()
+    });
+    throw new Error(`Failed to get SOL balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Get all tokens for a Solana account
  * @param walletAddress - The wallet address to get tokens for
  * @returns Array of token information including metadata
@@ -103,7 +136,7 @@ export async function getAllTokens(walletAddress: string): Promise<TokenInfo[]> 
     const tokens: TokenInfo[] = [];
     
     // Process each token account (limit to 10)
-    const limitedTokenAccounts = tokenAccounts.value.slice(0, 10);
+    const limitedTokenAccounts = tokenAccounts.value.slice(0, 30);
     for (const { account, pubkey } of limitedTokenAccounts) {
       const accountInfo = account.data.parsed.info;
       const mint = accountInfo.mint;
@@ -128,8 +161,6 @@ export async function getAllTokens(walletAddress: string): Promise<TokenInfo[]> 
         tokenAccount: pubkey.toString()
       });
     }
-
-    console.log("Final tokens array:", tokens);
     
     // Sort by balance (highest first)
     tokens.sort((a, b) => b.balance - a.balance);
@@ -148,73 +179,4 @@ export async function getAllTokens(walletAddress: string): Promise<TokenInfo[]> 
   }
 }
 
-/**
- * Get token balance for a specific mint
- * @param walletAddress - The wallet address
- * @param mintAddress - The token mint address
- * @returns Token balance information
- */
-export async function getTokenBalance(walletAddress: string, mintAddress: string): Promise<TokenInfo | null> {
-  try {
-    const connection = new Connection(getRpcEndpoint());
-    const publicKey = new PublicKey(walletAddress);
-    const mint = new PublicKey(mintAddress);
-    
-    // Get token account for specific mint
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-      publicKey,
-      {
-        mint: mint,
-        programId: TOKEN_PROGRAM_ID,
-      }
-    );
-    
-    if (tokenAccounts.value.length === 0) {
-      return null;
-    }
-    
-    const account = tokenAccounts.value[0];
-    const accountInfo = account.account.data.parsed.info;
-    const balance = accountInfo.tokenAmount.uiAmount;
-    const decimals = accountInfo.tokenAmount.decimals;
-    
-    // Get token metadata
-    const metadata = await getTokenMetadata(mintAddress);
-    
-    return {
-      mint: mintAddress,
-      name: metadata?.name || 'Unknown Token',
-      symbol: metadata?.symbol || 'UNKNOWN',
-      image: metadata?.image,
-      balance,
-      decimals,
-      tokenAccount: account.pubkey.toString()
-    };
-  } catch (error) {
-    console.error('Error getting token balance:', error);
-    throw new Error(`Failed to get token balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-/**
- * Get SOL balance for a wallet
- * @param walletAddress - The wallet address
- * @returns SOL balance in lamports and SOL
- */
-export async function getSolBalance(walletAddress: string): Promise<{ lamports: number; sol: number }> {
-  try {
-    const connection = new Connection(getRpcEndpoint());
-    const publicKey = new PublicKey(walletAddress);
-    
-    const balance = await connection.getBalance(publicKey);
-    
-    return {
-      lamports: balance,
-      sol: balance / 1e9 // Convert lamports to SOL
-    };
-  } catch (error) {
-    console.error('Error getting SOL balance:', error);
-    throw new Error(`Failed to get SOL balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
 

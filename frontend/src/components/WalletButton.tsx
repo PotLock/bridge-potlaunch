@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletSelector } from '@near-wallet-selector/react-hook';
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import toast from 'react-hot-toast';
 
 interface ConnectedWallet {
   type: 'solana' | 'near' | 'evm';
@@ -30,6 +31,7 @@ const WalletButton: React.FC = () => {
   // State for modals
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [showCopySuccess, setShowCopySuccess] = useState<string | null>(null);
 
   const isAnyWalletConnected = () => {
     return evmConnected || solanaConnected || !!signedAccountId;
@@ -106,6 +108,26 @@ const WalletButton: React.FC = () => {
     }
   };
 
+  // Handle copy success tooltip
+  useEffect(() => {
+    if (showCopySuccess) {
+      const timer = setTimeout(() => {
+        setShowCopySuccess(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showCopySuccess]);
+
+  const handleCopyAddress = async (address: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setShowCopySuccess(type);
+      toast.success('Address copied to clipboard!');
+    } catch (error) {
+      toast.error('Failed to copy address');
+    }
+  };
+
   const handleDisconnectWallet = async (walletType: 'solana' | 'near' | 'evm') => {
     switch (walletType) {
       case 'solana':
@@ -151,9 +173,25 @@ const WalletButton: React.FC = () => {
                     className="w-4 h-4" 
                   />
                 </div>
-                <span className="text-xs text-gray-500 font-mono">
-                  {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
-                </span>
+                <div className="relative group flex-1">
+                  <span 
+                    className="text-xs text-gray-500 font-mono cursor-pointer hover:text-gray-700"
+                    onClick={() => handleCopyAddress(wallet.address, wallet.type)}
+                  >
+                    {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+                  </span>
+                  {showCopySuccess === wallet.type ? (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-green-600 text-white text-xs rounded opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      Copy successful!
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-green-600"></div>
+                    </div>
+                  ) : (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      {wallet.address}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                    </div>
+                  )}
+                </div>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
