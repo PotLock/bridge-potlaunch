@@ -1,8 +1,8 @@
-# Bridge Potlaunch
+# Bridge POTLAUNCH
 
 ## Overview
 
-Bridge Potlaunch is a comprehensive cross-chain bridge platform designed for the Potlaunch ecosystem. This project provides a complete solution for cross-chain asset transfers, supporting multiple blockchain networks including Ethereum, Solana, and NEAR.
+Bridge POTLAUNCH is a comprehensive cross-chain bridge platform designed for the POTLAUNCH ecosystem. This project provides a complete solution for cross-chain asset transfers, supporting multiple blockchain networks including Ethereum, Solana, and NEAR.
 
 ## Project Structure
 
@@ -15,7 +15,7 @@ bridge-potlaunch/
 
 ## Purpose
 
-Bridge Potlaunch serves as a complete cross-chain bridge solution that enables:
+Bridge POTLAUNCH serves as a complete cross-chain bridge solution that enables:
 
 - **Cross-Chain Asset Transfers**: Seamless transfer of assets between different blockchain networks
 - **Multi-Chain Support**: Integration with Ethereum, Solana, and NEAR networks

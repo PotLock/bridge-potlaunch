@@ -39,6 +39,7 @@ export default defineConfig({
   },
   html: {
     template: "./index.html",
+    title: "Bridge Pot Launch",
   },
   server: {
     port: 5173,

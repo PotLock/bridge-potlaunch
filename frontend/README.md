@@ -1,8 +1,8 @@
-# Bridge Potlaunch Test
+# Bridge POTLAUNCH Test
 
 ## Overview
 
-Bridge Potlaunch Test is a specialized testing environment for the Potlaunch platform's bridge functionality. This version is designed specifically for development, testing, and validation of cross-chain bridge operations within the Potlaunch ecosystem.
+Bridge POTLAUNCH Test is a specialized testing environment for the POTLAUNCH platform's bridge functionality. This version is designed specifically for development, testing, and validation of cross-chain bridge operations within the POTLAUNCH ecosystem.
 
 ## Purpose
 

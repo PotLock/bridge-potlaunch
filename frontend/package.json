@@ -7,7 +7,9 @@
   "module": "src/index.tsx",
   "scripts": {
     "dev": "rsbuild dev --port 5173",
-    "generate": "tsr generate"
+    "generate": "tsr generate",
+    "build": "tsr generate && rsbuild build",
+    "preview": "rsbuild preview"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
